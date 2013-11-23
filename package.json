@@ -1,0 +1,20 @@
+{
+  "name": "video-pinner",
+  "description": "Video Pinner",
+  "version": "0.1.0",
+  "author": {
+    "name": "Kashif Iqbal Khan",
+    "email": "kashiif@gmail.com",
+    "url": "www.kashiif.com"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-copy": "~0.4.1",
+    "grunt-regex-replace": "~0.2.5",
+    "grunt-contrib-compress": "~0.5.2",
+    "grunt-contrib-clean": "~0.5.0",
+    "grunt-contrib-concat": "~0.3.0",
+    "grunt-string-replace": "~0.2.7",
+    "grunt-preprocess": "~3.0.1"
+  }
+}

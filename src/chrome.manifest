@@ -1,0 +1,6 @@
+content video-pinner ext-contents/ contentaccessible=yes
+
+locale	video-pinner	en-US	ext-contents/firefox/locale/en-US/
+
+skin	video-pinner	video-pinner-skin	ext-contents/firefox/skin/
+

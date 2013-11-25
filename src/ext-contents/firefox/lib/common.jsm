@@ -21,6 +21,48 @@ var unloadCommonJsm = function() {
 
 var gConsoleService = null;
 
+
+var utils = {
+
+  _stringify: function(obj) {
+    if (obj === null) {
+      return "null";
+    }
+    if (typeof obj != "object") {
+      return (obj ? obj.toString(): "undefined");
+    }
+
+    var items = [];
+    for (var p in obj) {
+      items.push(p + ": " + obj[p]);
+    }
+    return items;
+  },
+
+  /*******************************************************************************
+  * Gets string equivalent of object. Roughly equivalent of JSON.stringify
+  * 
+  * @param {Object} obj An instance of object or null or undefined
+  * @param {boolean} prettify true if new line characters should be inserted;
+  *                  false otherwise
+  *
+  * @returns {String} String representation of provided object                  
+  *******************************************************************************/
+  stringify: function(obj, prettify) {
+    var arr = utils._stringify(obj);
+    
+    if (arr instanceof Array) {
+      if (prettify === true) {
+        return "{\n  "  + arr.join(",\n  ") + "\n}";
+      }
+      return "{ "  + arr.join(", ") + " }";
+    }
+    
+    return arr;  
+  }
+  
+};
+
 var logger = {
   _prefix: "",
   init: function(prefix) {
@@ -36,37 +78,38 @@ var logger = {
   
   debug: function(msg) {
     if (!gConsoleService) return;
+    try {
     gConsoleService.logStringMessage(this._prefix + this._getMessage.apply(this, Array.prototype.slice.call(arguments, 0)));
+    }
+    catch(ex) {
+      Components.utils.reportError(ex);
+    }
   },
   
   _getMessage: function() {
     var msg = "", argN;
     
     if (arguments.length == 1) {
-      argN = arguments[0];
-      
-      if (argN instanceof String) {
-        return argN;
-      }
-      if (typeof argN == "object") {
-        return utils.stringify(argN, true);
-      }
-      
-      return argN;      
+      return this._getAsString( arguments[0] );
     }
     
     for (var i=0 ; i<arguments.length ; i++) {
-      argN = arguments[i];
-      if (typeof argN == "object") {
-        msg += utils.stringify(argN);
-      }
-      else {
-        msg += argN;
-      }
+        msg += this._getAsString( arguments[i] );
     }
     
     return msg;
     
+  },
+  
+  _getAsString: function(argN) {
+    if (argN instanceof String) {
+      return argN;
+    }
+    if (typeof argN == "object") {
+      return utils.stringify(argN, true);
+    }
+    
+    return argN;      
   },
 
   error: function(msg) {

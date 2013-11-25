@@ -10,15 +10,16 @@
 		<em:developer>Kashif Iqbal Khan</em:developer>
 		<em:homepageURL></em:homepageURL>
 		<em:description>Firefox extension to keep the video on YouTube visible while you scroll to read comments.</em:description>
+    <!--
 		<em:optionsURL>chrome://video-pinner/content/firefox/main/options.xul</em:optionsURL>
-
+    -->
 		
 		<!-- Firefox -->
 		<em:targetApplication>
 			<Description>
 				<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
 				<em:minVersion>10.0</em:minVersion>
-				<em:maxVersion>19.0a1</em:maxVersion>
+				<em:maxVersion>28.0</em:maxVersion>
 			</Description>
 		</em:targetApplication>
 	
@@ -28,7 +29,7 @@
 		  <Description>
 			<em:id>{92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}</em:id><!-- SeaMonkey -->
 			<em:minVersion>2.1</em:minVersion>
-			<em:maxVersion>2.16a1</em:maxVersion>
+			<em:maxVersion>2.25</em:maxVersion>
 		  </Description>
 		</em:targetApplication>
 

@@ -76,11 +76,7 @@ function startup(data, reason) {
   resource.setSubstitution('video-pinner', alias);
 
   Cu.import('resource://video-pinner/ext-contents/firefox/main/videopinner.js');
-  Cu.import('resource://video-pinner/ext-contents/firefox/lib/propertyfile.jsm');
-
-  var propertyFile = new PropertyFile('chrome://video-pinner/locale/videopinner.properties');
-
-  videoPinner.init(propertyFile);
+  videoPinner.init();
 
   let wm = Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator);
 
@@ -118,7 +114,6 @@ function shutdown(data, reason) {
 
   // Unload all our modules that we imported!
   Cu.unload('resource://video-pinner/ext-contents/firefox/main/videopinner.js');
-  Cu.unload('resource://video-pinner/ext-contents/firefox/lib/propertyfile.jsm');
 
   
   // @ifdef DEBUG

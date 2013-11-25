@@ -20,12 +20,11 @@ var EXPORTED_SYMBOLS = ['videoPinner'];
 
 
 var videoPinner = {
-  _propertyFile: null,
 
   /**
   * Initialization function of extension core module. Called once at the start-up/extension activation/extension upgrade
   */
-	init: function(propertyFile) {
+	init: function() {
 		var consoleService = Components.classes['@mozilla.org/consoleservice;1']
                             .getService(Components.interfaces.nsIConsoleService);
     // temporary function
@@ -35,7 +34,6 @@ var videoPinner = {
   
     Components.utils.import('resource://video-pinner/ext-contents/firefox/lib/common.jsm', this);
 
-    this._propertyFile = propertyFile;
     this.logger.init('Video Pinner');
 
 		// __debug__ // /* 
@@ -51,9 +49,6 @@ var videoPinner = {
 		}
 		// __debug__ // */
 
-    this._prefManager.watch(this.handlePrefChanged);
-    
-    
     
     this.debug('init complete');
   },
@@ -65,7 +60,6 @@ var videoPinner = {
 
     this.debug('Uninit called. Extension is either disabled or uninstalled.');
 
-    this._propertyFile.destroy();
     this.logger.destroy();
 
     // unloadCommonJsm comes from common.jsm module
@@ -84,7 +78,7 @@ var videoPinner = {
 	
 		// unbind gBrowser  event
 		var gBrowser = document.getElementById("content");
-		gBrowser.removeEventListener("DOMContentLoaded", videoPinner.handleDOMContentLoaded, false);	
+		gBrowser.removeEventListener("DOMContentLoaded", videoPinner._handleDOMContentLoaded, false);	
 	
 	},
 
@@ -100,9 +94,6 @@ var videoPinner = {
 		
 	},
 
-  handlePrefChanged: function(prefName, newValue) {
-  },
-	
 	log : function (message) {
 	},
 
@@ -115,9 +106,23 @@ var videoPinner = {
   /********************************** Content Document Processing *****************************/
 	/*********************************************************************************************/
 
-  handleDOMContentLoaded: function(evt) {
+	isYouTubeVideoPage: function(doc) {
+    const isYoutube = /(\w*\.)?youtube\.(com|com\.br|fr|jp|nl|pl|ie|co\.uk|es|it)$/i;
+
+    return isYoutube.test(doc.location.host);
+	},
+
+	getVideoTag: function(doc) {
+		//this.debug('querySelector: '  + doc.querySelector('#movie_player-html5 video'));
+		//return doc.querySelector('#movie_player-html5 video');
+		return doc.querySelector('#movie_player video');
+	},
+
+  _handleDOMContentLoaded: function(evt) {
     var doc = evt.target,
         window = doc.defaultView;
+
+    videoPinner.debug("_handleDOMContentLoaded. ", window.frameElement, doc.documentElement ? doc.documentElement.tagName:"<no document element>");
 
     if (!window.location.href.startsWith("http")) return;
 
@@ -126,28 +131,135 @@ var videoPinner = {
     // ignore if triggered by frame or XUL documents
     if (window.frameElement || doc.documentElement.tagName != "HTML") return;
 
-    videoPinner._processContentDoc(doc);
+    // Check here if we need to process this page or not
+		if (!videoPinner.isYouTubeVideoPage(doc)) return;
+
+    videoPinner._processYoutubeDoc(doc);
   },
 
-  _processContentDoc: function(doc) {
-    this.debug("_processContentDoc");
-    var window = doc.defaultView;
+  _processYoutubeDoc: function(doc) {
+    this.debug("_processYoutubeDoc");
 
-    if (!docUrl.startsWith("http")) return;
+		var v = this.getVideoTag(doc);
+		
+		this.debug("videoTag on page: " + v);
+		
+		if (v) {
+			this._processVideoTag(doc, v);
+		}
+		else {
+			// Youtube change on 2012-12-07 
 
-    // Check here if we need to process this page or not
+			// create an observer instance
+			var observer = new doc.defaultView.MutationObserver(function(mutations, obs) {
+				videoPinner._handleMutation(mutations, obs);
+			});
+		 
+			// configuration of the observer:
+			var config = { childList: true};
+			 
+			// pass in the target node, as well as the observer options
+			observer.observe(doc.body, config);		 
 
-    try {
-      for (var i=0 ; i<scripts.length ; i++) {
-        this.injectScript(doc, this.platform.contentScriptUrl + scripts[i]);
-      }
-      this.debug("script injected");
-    }
-    catch (e) {
-      this.debug(e);
-    }    
+			doc.addEventListener('unload', function(evt) {
+				// later, you can stop observing
+				observer.disconnect();
+
+			});
+		}
     
   },
+  
+	_handleMutation: function(mutRecords, theObserver) {
+		var page = mutRecords[0].target.ownerDocument,
+			v = this.getVideoTag(page);
+		this.debug('videoTag on page Mutation: ' + v);
+		if (v) {
+
+			/*
+			for (var i = 0; i < mutRecords.length; ++i) {
+				var mutRecord = mutRecords[i]; 
+				for (var j = 0; j < mutRecord.addedNodes.length; ++j) {
+					var node = mutRecord.addedNodes[j]; 
+					this.debug(node.tagName + ' ' + node.id  );
+				}			
+			}
+			*/			
+
+			theObserver.disconnect();
+
+			this._processVideoTag(page, v);
+		}
+	},
+  
+  _processVideoTag: function(document, v) {
+    this.debug('found video: ' + v.tagName + document);
+    
+    //! https://github.com/tforbus/youtube-fixed-video-bookmarklet/blob/master/script.js
+
+    var window, player, content, sideWatch, footer, playerRect;
+
+    //this.debug('_processVideoTag1 ' + document.defaultView);
+    try {
+      window = document.defaultView;
+      player = document.getElementById('player');
+      content = document.getElementById('watch7-content');
+      sideWatch = document.getElementById('watch7-sidebar');
+      footer = document.getElementById('footer-container');
+      playerRect = player.getBoundingClientRect();
+
+      //this.debug('_processVideoTag2: ', player, content, sideWatch, footer, playerRect);
+     
+
+      footer.style.visibility = 'hidden';
+
+      this.debug('_processVideoTag4 ' + player + ", " + sideWatch + ", " + playerRect);
+      
+      window.addEventListener('scroll', function(e) {
+          if(window.pageYOffset >= playerRect.top && window.pageYOffset > 0) {
+            videoPinner._stylize(player,{
+                position: 'fixed',
+                top: '0',
+                zIndex: 999
+              });
+
+            videoPinner._stylize(sideWatch,{
+                position: 'absolute',
+                top: player.clientHeight+'px',
+                zIndex: 998
+              });
+              
+            videoPinner._stylize(content,{
+                position: 'relative',
+                top: player.clientHeight+'px',
+                zIndex: 997
+              });
+          }
+          else {
+            player.style.position = ''
+            player.style.top = ''
+
+            sideWatch.style.position = ''
+            sideWatch.style.top = ''
+
+            content.style.position = ''
+            content.style.top = ''
+          }
+        }, false);
+    }
+    catch (ex) {
+      Components.utils.reportError(ex);
+    }
+      
+  },
+	
+	_stylize: function(a, props) {
+		for (var p in props) {
+			a.style[p] = props[p];
+		}
+	},
+
+  
 	/*********************************************************************************************/
 
 
